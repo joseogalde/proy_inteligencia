@@ -1,0 +1,5 @@
+function output = epochFolding(data, period)
+    
+    output= data;
+    
+end

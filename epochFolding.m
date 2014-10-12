@@ -1,5 +1,8 @@
-function output = epochFolding(data)
-
-    %version de prueba: No hace nada
-    output=data;
+function output = epochFolding(data, period)
+    if period > 0
+        output= data;
+    
+    else
+        output=data;
+    end
 end

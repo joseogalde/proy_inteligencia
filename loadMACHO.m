@@ -27,22 +27,23 @@ function data=loadMACHO(maindir)
         files = files(3:end);
         
         for j=1:length(files)
-
+        
             fid=fopen(files(j).name);
-            %Leemos la serie de tiempo y lo pasamos a una matriz de 'double'
-            scan = textscan(fid, '%f %f %f','CommentStyle', '#');
-            read_data= cell2mat(scan);
+            older=cd('..');
             
-            fclose(fid);
-            cd('..');
+            %Leemos dentro del archivo y obtenemos la data junto con el
+            %periodo de la estrella.
+            [read_data, period]=readMACHOFile(fid, directories(i).name);
             
             %Aplicamos técnicas de análisis de datos para obtener un vector
             %de características (periodo, mediana, IQR, etc) y lo pegamos
             %a la resultado de retorno
-            x =extractInfo(read_data);
+            folded = epochFolding(read_data, period);
+            x = extractInfo(folded);
             data{i}=[data{i} x];
             
-            cd(directories(i).name);
+            fclose(fid);
+            cd(older);
         end
         cd('..');
     end

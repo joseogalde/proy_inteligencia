@@ -1,9 +1,8 @@
-function y =extractInfo(matrix_data)
+function y =extractInfo(folded_data)
     
     %aplicar epoch floding
-    folded_data=epochFolding(matrix_data);
     
-    y=[];
+    y=[]
     for i=1:3
         % y = [tiempo, promedio, desv_std] ?
         y=[y ;mean(folded_data(:,i))];
