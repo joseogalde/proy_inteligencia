@@ -6,7 +6,7 @@ function y =extractInfo(data)
     %respectivamente
     N=6;
     y=zeros(2*N,1);
-    for j=2:3
+    for j=2:2
         for i=1:N
             k=i*(j-1);
             switch i
