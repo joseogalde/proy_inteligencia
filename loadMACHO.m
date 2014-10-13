@@ -51,11 +51,16 @@ function data=loadMACHO(maindir)
             %Leemos dentro del archivo y obtenemos la data junto con el
             %periodo de la estrella.
             read_data=readMACHOFile(fid);%, directories(i).name);
+            subplot(2,1,1);
+            plot(read_data(:,1),read_data(:,2));
             
             %Aplicamos técnicas de análisis de datos para obtener un vector
             %de características (periodo, mediana, IQR, etc) y lo pegamos
             %a la resultado de retorno
             folded = epochFolding(read_data, periods(j,i));
+            subplot(2,1,2);
+            plot(folded(:,1),folded(:,2));
+            pause();
             x = extractInfo(folded);
             %Agrego el periodo a las caracteristicas
             x = [periods(j,i); x];
