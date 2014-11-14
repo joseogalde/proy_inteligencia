@@ -4,30 +4,65 @@ close all;
 clc;
 
 maindir = '/home/jose/UNIVERSIDAD/EL4106/proyectoGP';
-    directories={'CEPH','EB','RRL'};
-    periodFiles={'CEPH_periods.txt','EB_periods.txt','RRL_periods.txt'};
-    %Primero abrimos los archivos .txt que contienen los periodos
-    %'*_periods.txt' y lo guardamos en una matriz. Cada coluna de la matriz
-    %corresponde a un tipo (CEPH, 
-    periods=[];
-    for i=1:length(periodFiles)
-       fid=fopen(periodFiles{i});
-       p=readPeriod(fid);
-       periods=[periods, p];
-       fclose(fid);
-    end
+cd(maindir);
+
+ periods = loadPeriods(maindir);
+directories={'CEPH','EB','RRL'};
+ 
+%i=randi(length(directories));
+i=3;
+disp(['Directorio : ',directories{i}]);
+switch i
+    case 1
+        dirname = 'CEPH';
+    case 2
+        dirname = 'EB';
+    case 3
+        dirname = 'RRL';
+end
+j=randi(500);
+disp(['Numero de archivo : ',num2str(j)]);
+        %Nos movemos a una de las carpetas CEPH, EB o RRL y vamos abriendo
+        %cada uno de los archivos dentro de ellas
+        cd(directories{i});
+        files = dir;
+        files = files(3:end);
+        %files es un struct por lo que lo pasamos a un cell de strings
+        before = cd('..');
+        filenames = getFileNames(files);
+        %ahora lo ordenamos (debe coincidir con el mismo orden de los archivos .mat)
+        [sortedFiles, indexes]=sort(filenames);
+        cd(before);
+        disp(['Archivo: ', sortedFiles{j}]);
+         fid=fopen(sortedFiles{j});
+            older=cd('..');
+            
+            %Leemos dentro del archivo y obtenemos la data junto con el
+            %periodo de la estrella.
+            read = readMACHOFile(fid);
+            time = read(:,1);
+            data = read(:,2);
+            
+            %Aplicamos técnicas de análisis de datos para obtener un vector
+            %de características (periodo, mediana, IQR, etc) y lo pegamos
+            %a la resultado de retorno
+            period=periods(j,i);
+            disp(['Periodo : ', num2str(period)]);
+            [ftime, fdata] = epochFolding(read, period);
+
+subplot(3,1,1);
+plot(time,data,'b*');
+title([dirname, ' ',sortedFiles{j},' sin epoch Folding']);
+
+subplot(3,1,2);
+plot(ftime, fdata,'m*');
+title([dirname,' ' ,sortedFiles{j},' con epoch Folding']);
+
+[model, tmodel, outliers] = machoSmooth(fdata,ftime, 60, 0.5);
+
+subplot(3,1,3);
+plot(tmodel, model,'r*');
+title([dirname,' ',sortedFiles{j}, ' con epoch Folding + suavizado + ',num2str(outliers),' outliers eliminados']);
 
 
-fid=fopen('/home/jose/UNIVERSIDAD/EL4106/proyectoGP/CEPH/lc_1.3441.15_blue');
-
-read=readMACHOFile(fid);
-
-subplot(2,1,1);
-plot(read(:,1),read(:,2));
-title('Sin epoch Folding');
-
-fold=epochFolding(read, periods(1,1));
-subplot(2,1,2);
-plot(fold(:,1),fold(:,2));
-title('Con epoch Folding');
 fclose(fid);

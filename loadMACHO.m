@@ -1,38 +1,14 @@
-function data=loadMACHO(maindir)
+function database=loadMACHO(maindir)
     %Funcion que abre la base de datos y guarda los datos de los archivos
     %en un cell-array de cada carpeta.
     % 'data' es una matriz de vectores columnas. Cada vector corresponde a
     % una serie de tiempo
     
-    %Creamos un arreglo con los directorios de MACHO
     cd(maindir);
-%     files = dir;
-%     directories = [];
-%     periodFiles = [];
-    
-%     for i=1:length(files)
-%         if files(i).isdir && ( strcmp(files(i).name,'CEPH') || strcmp(files(i).name,'EB') || strcmp(files(i).name,'RRL') )
-%             directories = [directories; files(i)];
-%         elseif  strcmp(files(i).name,'CEPH_periods.txt') || strcmp(files(i).name,'EB_periods.txt') || strcmp(files(i).name,'RRL_periods.txt') 
-%             periodFiles = [periodFiles; files(i)];
-%         end
-%     end
-
-    directories={'CEPH','EB','RRL'};
-    periodFiles={'CEPH_periods.txt','EB_periods.txt','RRL_periods.txt'};
-    %Primero abrimos los archivos .txt que contienen los periodos
-    %'*_periods.txt' y lo guardamos en una matriz. Cada coluna de la matriz
-    %corresponde a un tipo (CEPH, 
-    periods=[];
-    for i=1:length(periodFiles)
-       fid=fopen(periodFiles{i});
-       p=readPeriod(fid);
-       periods=[periods, p];
-       fclose(fid);
-    end
-    
-    
+    %Leemos los archivos .mat que contienen los periodo (ej:CEPH_periods.mat)
+    periods = loadPeriods(maindir);
     %Cada columna de 'data' corresponde a uno de los directorios
+    directories={'CEPH','EB','RRL'};
     data=cell(1,length(directories));
     
     for i=1:length(directories)
@@ -42,35 +18,54 @@ function data=loadMACHO(maindir)
         cd(directories{i});
         files = dir;
         files = files(3:end);
+        %files es un struct por lo que lo pasamos a un cell de strings
+        before = cd('..');
+        filenames = getFileNames(files);
+        %ahora lo ordenamos (debe coincidir con el mismo orden de los archivos .mat)
+        [sortedFiles, indexes]=sort(filenames);
+        cd(before);
         
-        for j=1:length(files)
+        for j=1:length(sortedFiles)
         
-            fid=fopen(files(j).name);
+            fid=fopen(sortedFiles{j});
             older=cd('..');
             
             %Leemos dentro del archivo y obtenemos la data junto con el
             %periodo de la estrella.
-            read_data=readMACHOFile(fid);%, directories(i).name);
-            subplot(2,1,1);
-            plot(read_data(:,1),read_data(:,2));
+            read =readMACHOFile(fid);
             
             %Aplicamos técnicas de análisis de datos para obtener un vector
             %de características (periodo, mediana, IQR, etc) y lo pegamos
             %a la resultado de retorno
-            folded = epochFolding(read_data, periods(j,i));
-            subplot(2,1,2);
-            plot(folded(:,1),folded(:,2));
-            pause();
-            x = extractInfo(folded);
+            [ftime, fdata] = epochFolding(read, periods(j,i));
+            
+            %Suavizamos las curvas para evitar outliers y ruido
+            %fdata = conv(fdata,gausswin(3),'same');
+            
+            %nbins=4;
+            %[tbins, dbins] = partition(ftime, fdata, nbins);
+            
+            %x = extractInfo(tbins, dbins, nbins);
             %Agrego el periodo a las caracteristicas
-            x = [periods(j,i); x];
-            data{i}=[data{i} x];
+            %x = [periods(j,i); x];
+            %x = x';
+            x=periods(j,i);
+            data{i}=[data{i}; x];
             
             fclose(fid);
             cd(older);
         end
         cd('..');
     end
-
+    %etiquetas
+     database.data=data{1};
+     database.data=[database.data; data{2}];
+     database.data=[database.data; data{3}];
+     
+     database.target=ones(length(data{1}),1);
+     database.target=[database.target; 2.*ones(length(data{2}),1)];
+     database.target=[database.target; 3.*ones(length(data{3}),1)];
+     
+     database.name='macho';
 end
     
